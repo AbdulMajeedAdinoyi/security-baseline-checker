@@ -1,0 +1,20 @@
+{
+  "password_policy": {
+    "min_length": 8,
+    "complexity_required": true,
+    "max_age_days": 90,
+    "history_size": 5
+  },
+  "firewall": {
+    "enabled": true,
+    "profiles": ["domain", "private", "public"]
+  },
+  "services": {
+    "disabled": ["Telnet", "RemoteRegistry", "SNMP"]
+  },
+  "file_permissions": {
+    "etc_passwd": "644",
+    "etc_shadow": "600",
+    "ssh_config": "600"
+  }
+}

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Baseline Checker - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 Security Baseline Checker</h1>
+            <nav>
+                <a href="/" class="active">Dashboard</a>
+                <a href="/scan">New Scan</a>
+                <a href="/history">History</a>
+            </nav>
+        </header>
+
+        <main class="dashboard">
+            <div class="welcome-section">
+                <h2>Welcome to Security Baseline Checker</h2>
+                <p>Monitor and verify your system's security configuration compliance</p>
+            </div>
+
+            <div class="system-info" id="systemInfo">
+                <h3>System Information</h3>
+                <div class="loading">Loading system information...</div>
+            </div>
+
+            <div class="quick-actions">
+                <h3>Quick Actions</h3>
+                <div class="action-buttons">
+                    <a href="/scan" class="btn btn-primary">
+                        <span class="icon">🔍</span>
+                        Start New Scan
+                    </a>
+                    <a href="/history" class="btn btn-secondary">
+                        <span class="icon">📊</span>
+                        View History
+                    </a>
+                </div>
+            </div>
+
+            <div class="recent-scans" id="recentScans">
+                <h3>Recent Scans</h3>
+                <div class="loading">Loading recent scans...</div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Security Baseline Checker | Confluence University Project</p>
+        </footer>
+    </div>
+
+    <script>
+        // Load system information
+        fetch('/api/system/info')
+            .then(response => response.json())
+            .then(data => {
+                const systemInfoDiv = document.getElementById('systemInfo');
+                systemInfoDiv.innerHTML = `
+                    <h3>System Information</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <strong>Operating System:</strong>
+                            <span>${data.os_type || 'Unknown'}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>System:</strong>
+                            <span>${data.details.system || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Release:</strong>
+                            <span>${data.details.release || 'N/A'}</span>
+                        </div>
+                        <div class="info-item">
+                            <strong>Machine:</strong>
+                            <span>${data.details.machine || 'N/A'}</span>
+                        </div>
+                    </div>
+                `;
+            })
+            .catch(error => {
+                document.getElementById('systemInfo').innerHTML = 
+                    '<p class="error">Failed to load system information</p>';
+            });
+
+        // Load recent scans
+        fetch('/api/scan/history?limit=5')
+            .then(response => response.json())
+            .then(data => {
+                const recentScansDiv = document.getElementById('recentScans');
+                
+                if (data.length === 0) {
+                    recentScansDiv.innerHTML = `
+                        <h3>Recent Scans</h3>
+                        <p class="no-data">No scans found. Start your first scan!</p>
+                    `;
+                    return;
+                }
+
+                let scansHTML = '<h3>Recent Scans</h3><div class="scans-list">';
+                data.forEach(scan => {
+                    const score = scan.score || 0;
+                    const scoreClass = score >= 80 ? 'good' : score >= 60 ? 'warning' : 'bad';
+                    const date = new Date(scan.scan_date).toLocaleString();
+                    
+                    scansHTML += `
+                        <div class="scan-item">
+                            <div class="scan-date">${date}</div>
+                            <div class="scan-os">${scan.os}</div>
+                            <div class="scan-score ${scoreClass}">${score}%</div>
+                            <div class="scan-checks">${scan.total_checks} checks</div>
+                        </div>
+                    `;
+                });
+                scansHTML += '</div>';
+                
+                recentScansDiv.innerHTML = scansHTML;
+            })
+            .catch(error => {
+                document.getElementById('recentScans').innerHTML = 
+                    '<h3>Recent Scans</h3><p class="error">Failed to load recent scans</p>';
+            });
+    </script>
+</body>
+</html>

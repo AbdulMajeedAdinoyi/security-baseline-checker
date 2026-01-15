@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Baseline Checker - New Scan</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 Security Baseline Checker</h1>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/scan" class="active">New Scan</a>
+                <a href="/history">History</a>
+            </nav>
+        </header>
+
+        <main class="scan-page">
+            <div class="scan-section">
+                <h2>Security Baseline Scan</h2>
+                <p>Run a comprehensive security compliance check on your system</p>
+            </div>
+
+            <!-- Pre-Scan Section -->
+            <div id="preScanSection" class="scan-card">
+                <h3>Initiate System Scan</h3>
+                <div class="system-info-pre">
+                    <div id="systemInfoPre" class="loading">Loading system information...</div>
+                </div>
+
+                <div class="scan-actions">
+                    <button id="startScanBtn" class="btn btn-primary" onclick="startScan()">
+                        <span class="icon">🔍</span>
+                        Start Security Scan
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scanning Section -->
+            <div id="scanningSectionContainer" style="display: none;">
+                <div class="scan-card scanning-card">
+                    <h3>Scanning System...</h3>
+                    
+                    <div class="scanning-animation">
+                        <div class="spinner"></div>
+                        <p id="scanStatus">Initializing scan...</p>
+                    </div>
+
+                    <div class="progress-container">
+                        <div class="progress-info">
+                            <span>Progress</span>
+                            <span id="progressPercent">0%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                    </div>
+
+                    <div class="scan-details">
+                        <h4>Scan Details</h4>
+                        <ul id="scanDetails" class="scan-checklist">
+                            <li><span class="check-icon">⏳</span> <span>Detecting platform...</span></li>
+                        </ul>
+                    </div>
+
+                    <div id="elapsedTime" class="elapsed-time">Elapsed time: 0s</div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSectionContainer" style="display: none;">
+                <div class="scan-card results-card">
+                    <h3>Scan Results</h3>
+                    
+                    <div class="score-display" id="scoreDisplay">
+                        <div class="score-circle" id="scoreCircle">
+                            <div class="score-number" id="scoreNumber">0</div>
+                            <div class="score-label">%</div>
+                        </div>
+                        <div class="score-info">
+                            <p id="scoreMessage"></p>
+                            <p id="scoreDetails"></p>
+                        </div>
+                    </div>
+
+                    <div class="results-summary">
+                        <div class="summary-item">
+                            <div class="summary-label">Total Checks</div>
+                            <div class="summary-value" id="totalChecks">0</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Compliant</div>
+                            <div class="summary-value good" id="compliantCount">0</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Non-Compliant</div>
+                            <div class="summary-value bad" id="nonCompliantCount">0</div>
+                        </div>
+                        <div class="summary-item">
+                            <div class="summary-label">Scan Time</div>
+                            <div class="summary-value" id="scanDuration">0s</div>
+                        </div>
+                    </div>
+
+                    <div class="results-details">
+                        <h4>Detailed Findings</h4>
+                        <div id="resultsTable" class="results-table">
+                            <!-- Results will be inserted here -->
+                        </div>
+                    </div>
+
+                    <div class="scan-actions">
+                        <button class="btn btn-primary" onclick="startScan()">
+                            <span class="icon">🔄</span>
+                            Run Another Scan
+                        </button>
+                        <a href="/history" class="btn btn-secondary">
+                            <span class="icon">📊</span>
+                            View History
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Security Baseline Checker | Confluence University Project</p>
+        </footer>
+    </div>
+
+    <script>
+        let scanInProgress = false;
+        let startTime = 0;
+        let elapsedInterval = null;
+
+        // Load system information on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSystemInfo();
+        });
+
+        function loadSystemInfo() {
+            fetch('/api/system/info')
+                .then(response => response.json())
+                .then(data => {
+                    const systemInfoDiv = document.getElementById('systemInfoPre');
+                    systemInfoDiv.innerHTML = `
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <strong>Operating System:</strong>
+                                <span>${data.os_type || 'Unknown'}</span>
+                            </div>
+                            <div class="info-item">
+                                <strong>System:</strong>
+                                <span>${data.details.system || 'N/A'}</span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Release:</strong>
+                                <span>${data.details.release || 'N/A'}</span>
+                            </div>
+                            <div class="info-item">
+                                <strong>Processor:</strong>
+                                <span>${data.details.machine || 'N/A'}</span>
+                            </div>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('systemInfoPre').innerHTML = 
+                        '<p class="error">Failed to load system information</p>';
+                });
+        }
+
+        function startScan() {
+            if (scanInProgress) return;
+
+            scanInProgress = true;
+            startTime = Date.now();
+            
+            // Hide pre-scan and results sections
+            document.getElementById('preScanSection').style.display = 'none';
+            document.getElementById('resultsSectionContainer').style.display = 'none';
+            
+            // Show scanning section
+            document.getElementById('scanningSectionContainer').style.display = 'block';
+            
+            // Reset scan details
+            document.getElementById('scanDetails').innerHTML = '<li><span class="check-icon">⏳</span> <span>Detecting platform...</span></li>';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('progressPercent').textContent = '0%';
+            
+            // Start elapsed time counter
+            startElapsedTimer();
+            
+            // Simulate progress updates
+            simulateProgress();
+            
+            // Start actual scan
+            fetch('/api/scan/start', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    clearInterval(elapsedInterval);
+                    displayResults(data);
+                })
+                .catch(error => {
+                    clearInterval(elapsedInterval);
+                    console.error('Scan error:', error);
+                    document.getElementById('scanStatus').textContent = 'Scan failed: ' + error.message;
+                    scanInProgress = false;
+                });
+        }
+
+        function startElapsedTimer() {
+            let seconds = 0;
+            elapsedInterval = setInterval(function() {
+                seconds++;
+                document.getElementById('elapsedTime').textContent = 'Elapsed time: ' + seconds + 's';
+            }, 1000);
+        }
+
+        function simulateProgress() {
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                if (progress < 90) {
+                    progress += Math.random() * 20;
+                    if (progress > 90) progress = 90;
+                    updateProgress(progress);
+                } else {
+                    clearInterval(progressInterval);
+                }
+            }, 800);
+        }
+
+        function updateProgress(percent) {
+            const roundedPercent = Math.round(percent);
+            document.getElementById('progressFill').style.width = roundedPercent + '%';
+            document.getElementById('progressPercent').textContent = roundedPercent + '%';
+            
+            // Update scan status message
+            const messages = [
+                'Initializing scan...',
+                'Detecting platform...',
+                'Running password policy checks...',
+                'Checking firewall configuration...',
+                'Analyzing services...',
+                'Verifying permissions...',
+                'Compiling results...'
+            ];
+            
+            const messageIndex = Math.floor((roundedPercent / 100) * (messages.length - 1));
+            document.getElementById('scanStatus').textContent = messages[messageIndex];
+        }
+
+        function displayResults(results) {
+            // Complete the progress bar
+            document.getElementById('progressFill').style.width = '100%';
+            document.getElementById('progressPercent').textContent = '100%';
+            
+            // Hide scanning section
+            document.getElementById('scanningSectionContainer').style.display = 'none';
+            
+            // Show results section
+            document.getElementById('resultsSectionContainer').style.display = 'block';
+            
+            // Calculate score class
+            const score = results.score || 0;
+            let scoreClass = 'good';
+            let scoreMessage = 'Excellent Security Posture';
+            
+            if (score < 60) {
+                scoreClass = 'bad';
+                scoreMessage = 'Critical Issues Found';
+            } else if (score < 80) {
+                scoreClass = 'warning';
+                scoreMessage = 'Improvements Needed';
+            }
+            
+            // Display score
+            document.getElementById('scoreNumber').textContent = Math.round(score);
+            document.getElementById('scoreCircle').className = 'score-circle ' + scoreClass;
+            document.getElementById('scoreMessage').textContent = scoreMessage;
+            document.getElementById('scoreDetails').textContent = 
+                'Based on ' + (results.total_checks || 0) + ' security checks';
+            
+            // Display summary
+            document.getElementById('totalChecks').textContent = results.total_checks || 0;
+            document.getElementById('compliantCount').textContent = results.compliant_count || 0;
+            document.getElementById('nonCompliantCount').textContent = results.non_compliant_count || 0;
+            document.getElementById('scanDuration').textContent = (results.duration || 0) + 's';
+            
+            // Display detailed results
+            displayDetailedResults(results.checks || []);
+            
+            scanInProgress = false;
+        }
+
+        function displayDetailedResults(checks) {
+            if (!checks || checks.length === 0) {
+                document.getElementById('resultsTable').innerHTML = '<p class="no-data">No check results available</p>';
+                return;
+            }
+            
+            let tableHTML = '<table class="results-table-detail"><thead><tr><th>Check Name</th><th>Category</th><th>Status</th><th>Details</th></tr></thead><tbody>';
+            
+            checks.forEach(check => {
+                const statusClass = check.status === 'compliant' ? 'good' : check.status === 'error' ? 'bad' : 'warning';
+                const statusEmoji = check.status === 'compliant' ? '✓' : check.status === 'error' ? '✗' : '⚠';
+                
+                tableHTML += `
+                    <tr>
+                        <td>${check.name || 'Unknown'}</td>
+                        <td>${check.category || 'N/A'}</td>
+                        <td><span class="status-badge ${statusClass}">${statusEmoji} ${check.status || 'unknown'}</span></td>
+                        <td>${check.message || check.details || 'N/A'}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHTML += '</tbody></table>';
+            document.getElementById('resultsTable').innerHTML = tableHTML;
+        }
+    </script>
+</body>
+</html>

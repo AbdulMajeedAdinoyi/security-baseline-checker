@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Baseline Checker - History</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 Security Baseline Checker</h1>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/scan">New Scan</a>
+                <a href="/history" class="active">History</a>
+            </nav>
+        </header>
+
+        <main class="history-page">
+            <h2>Scan History</h2>
+            <div id="historyContent" class="history-content">
+                <div class="loading">Loading scan history...</div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Security Baseline Checker | Confluence University Project</p>
+        </footer>
+    </div>
+
+    <script>
+        fetch('/api/scan/history?limit=20')
+            .then(response => response.json())
+            .then(data => {
+                const historyDiv = document.getElementById('historyContent');
+                
+                if (data.length === 0) {
+                    historyDiv.innerHTML = '<p class="no-data">No scan history found</p>';
+                    return;
+                }
+
+                let tableHTML = `
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date & Time</th>
+                                <th>Operating System</th>
+                                <th>Compliance Score</th>
+                                <th>Total Checks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.forEach(scan => {
+                    const score = scan.score || 0;
+                    const scoreClass = score >= 80 ? 'good' : score >= 60 ? 'warning' : 'bad';
+                    const date = new Date(scan.scan_date).toLocaleString();
+                    
+                    tableHTML += `
+                        <tr>
+                            <td>${date}</td>
+                            <td>${scan.os}</td>
+                            <td class="${scoreClass}">${score}%</td>
+                            <td>${scan.total_checks}</td>
+                        </tr>
+                    `;
+                });
+
+                tableHTML += '</tbody></table>';
+                historyDiv.innerHTML = tableHTML;
+            })
+            .catch(error => {
+                document.getElementById('historyContent').innerHTML = 
+                    '<p class="error">Failed to load scan history</p>';
+            });
+    </script>
+</body>
+</html>
