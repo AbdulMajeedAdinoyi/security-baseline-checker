@@ -386,14 +386,17 @@
 
             // Show which OS was used and indicate override/difference when relevant
             const osUsed = results.os_used || results.os_type || results.detected_os || 'Unknown';
-            let osNote = osUsed;
+            let label = osUsed;
             if (results.os_overridden) {
-                osNote += ' (overridden)';
+                label += ' (overridden)';
             }
+
+            // Show main label prominently and put detected info in a muted subtitle
+            let detectedText = '';
             if (results.detected_os && results.detected_os !== osUsed) {
-                osNote += ` — detected: ${results.detected_os}`;
+                detectedText = `<div class="muted small">detected: ${results.detected_os}</div>`;
             }
-            document.getElementById('osUsed').textContent = osNote;
+            document.getElementById('osUsed').innerHTML = `${label}${detectedText}`;
             
             // Display detailed results
             displayDetailedResults(results.checks || []);
