@@ -172,6 +172,60 @@ def get_history():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/scan/history/clear', methods=['POST'])
+def clear_history():
+    """Clear all scan history (use with caution)"""
+    try:
+        db_manager.delete_all_scans()
+        return jsonify({'status': 'ok'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scan/history/download')
+def download_history_html():
+    """Return an HTML file containing all scan history"""
+    try:
+        # get all history entries and expand to full scans
+        history = db_manager.get_scan_history(10000)
+        scans = []
+        for entry in history:
+            full = db_manager.get_scan_by_id(entry['scan_id'])
+            if full:
+                scans.append(full)
+        html = render_template('history_report.html', scans=scans)
+        resp = app.response_class(html, mimetype='text/html')
+        resp.headers['Content-Disposition'] = f'attachment; filename=scan_history.html'
+        return resp
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scan/<int:scan_id>/download/html')
+def download_scan_html(scan_id):
+    """Return a scan result as downloadable HTML report"""
+    try:
+        scan = db_manager.get_scan_by_id(scan_id)
+        if not scan:
+            return jsonify({'error': 'Scan not found'}), 404
+        html = render_template('scan_report.html', scan=scan)
+        resp = app.response_class(html, mimetype='text/html')
+        resp.headers['Content-Disposition'] = f'attachment; filename=scan_{scan_id}.html'
+        return resp
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scan/<int:scan_id>/download')
+def download_scan(scan_id):
+    """Return a scan result as a downloadable JSON file"""
+    try:
+        scan = db_manager.get_scan_by_id(scan_id)
+        if not scan:
+            return jsonify({'error': 'Scan not found'}), 404
+        resp = jsonify(scan)
+        resp.headers['Content-Disposition'] = f'attachment; filename=scan_{scan_id}.json'
+        return resp
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/system/info')
 def system_info():
     """API endpoint to get system information"""

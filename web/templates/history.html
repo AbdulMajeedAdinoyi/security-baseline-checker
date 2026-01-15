@@ -19,6 +19,10 @@
 
         <main class="history-page">
             <h2>Scan History</h2>
+            <div style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem;">
+                <button id="clearHistoryBtn" class="btn btn-secondary" onclick="confirmClearHistory()">Clear History</button>
+                <div class="info-text small muted">Clearing history will remove saved scans and their details from the local database.</div>
+            </div>
             <div id="historyContent" class="history-content">
                 <div class="loading">Loading scan history...</div>
             </div>
@@ -48,6 +52,7 @@
                                 <th>Operating System</th>
                                 <th>Compliance Score</th>
                                 <th>Total Checks</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -67,6 +72,7 @@
                             <td title="Detected: ${scan.detected_os || ''}">${osLabel}${psBadge}</td>
                             <td class="${scoreClass}">${score}%</td>
                             <td>${scan.total_checks}</td>
+                            <td><a class="btn btn-secondary" href="/api/scan/${scan.scan_id}/download/html">Download</a></td>
                         </tr>
                     `;
                 });
@@ -78,6 +84,39 @@
                 document.getElementById('historyContent').innerHTML = 
                     '<p class="error">Failed to load scan history</p>';
             });
+
+        function confirmClearHistory() {
+            if (!confirm('Clear all scan history? This cannot be undone.')) return;
+            fetch('/api/scan/history/clear', { method: 'POST' })
+                .then(resp => {
+                    if (!resp.ok) {
+                        throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+                    }
+                    return resp.json();
+                })
+                .then(data => {
+                    if (data && data.status === 'ok') {
+                        // reload history
+                        fetch('/api/scan/history?limit=20')
+                            .then(r => r.json())
+                            .then(updated => {
+                                const historyDiv = document.getElementById('historyContent');
+                                if (!updated || updated.length === 0) {
+                                    historyDiv.innerHTML = '<p class="no-data">No scan history found</p>';
+                                    return;
+                                }
+                                // otherwise rebuild table
+                                // reuse existing code by forcing a reload
+                                location.reload();
+                            });
+                    } else {
+                        alert('Failed to clear history: ' + (data.error || 'Unknown'));
+                    }
+                }).catch(err => {
+                    console.error('Clear history error:', err);
+                    alert('Failed to clear history: ' + err.message);
+                });
+        }
     </script>
 </body>
 </html>

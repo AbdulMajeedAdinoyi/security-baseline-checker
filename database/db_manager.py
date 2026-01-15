@@ -142,7 +142,7 @@ class DatabaseManager:
         results = cursor.fetchall()
         conn.close()
         
-        return [{
+        result_list = [{
             'scan_id': r[0],
             'scan_date': r[1],
             'os': r[2],
@@ -153,3 +153,80 @@ class DatabaseManager:
             'score': r[7],
             'total_checks': r[8]
         } for r in results]
+
+        return result_list
+
+    def get_scan_by_id(self, scan_id):
+        """Retrieve a full scan result by id, including check details"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        cursor.execute('''
+            SELECT scan_id, scan_date, operating_system, detected_os, os_used, os_overridden, powershell_available,
+                   overall_compliance_score, total_checks, compliant_count, non_compliant_count, warning_count, scan_duration
+            FROM ScanSession
+            WHERE scan_id = ?
+        ''', (scan_id,))
+
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return None
+
+        scan = {
+            'scan_id': row[0],
+            'scan_date': row[1],
+            'os_type': row[2],
+            'detected_os': row[3],
+            'os_used': row[4],
+            'os_overridden': bool(row[5]),
+            'powershell_available': None if row[6] is None else bool(row[6]),
+            'score': row[7],
+            'total_checks': row[8],
+            'compliant_count': row[9],
+            'non_compliant_count': row[10],
+            'warning_count': row[11],
+            'duration': row[12]
+        }
+
+        # Fetch associated check results
+        cursor.execute('''
+            SELECT check_category, check_name, compliance_status, severity, description, remediation
+            FROM CheckResult
+            WHERE scan_id = ?
+        ''', (scan_id,))
+
+        checks = []
+        for c in cursor.fetchall():
+            remediation = c[5]
+            try:
+                remediation = json.loads(remediation) if remediation else remediation
+            except Exception:
+                remediation = remediation
+
+            checks.append({
+                'category': c[0],
+                'name': c[1],
+                'status': c[2],
+                'severity': c[3],
+                'description': c[4],
+                'remediation': remediation
+            })
+
+        conn.close()
+        scan['checks'] = checks
+        return scan
+
+    def delete_all_scans(self):
+        """Delete all scans and related check results"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        try:
+            cursor.execute('DELETE FROM CheckResult')
+            cursor.execute('DELETE FROM ScanSession')
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.close()

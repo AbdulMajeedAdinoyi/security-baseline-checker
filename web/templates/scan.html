@@ -57,6 +57,13 @@
                         <strong>⚠️ PowerShell missing:</strong> The server does not have PowerShell available, so Windows checks may not be runnable. Consider running this scan on a Windows host or accept that checks may return friendly 'PowerShell not available' errors.
                     </div>
 
+                    <div class="scan-actions">
+                        <button id="startScanBtn" class="btn btn-primary" onclick="startScan()">
+                            <span class="icon">🔍</span>
+                            Start Security Scan
+                        </button>
+                    </div>
+
                 <!-- Confirmation modal for missing PowerShell -->
                 <div id="confirmModal" class="modal" style="display:none;">
                     <div class="modal-content">
@@ -68,13 +75,6 @@
                         </div>
                     </div>
                 </div>
-
-                            <span id="progressPercent">0%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div id="progressFill" class="progress-fill"></div>
-                        </div>
-                    </div>
 
                     <div class="scan-details">
                         <h4>Scan Details</h4>
@@ -142,6 +142,10 @@
                             <span class="icon">📊</span>
                             View History
                         </a>
+                        <a id="downloadReportBtn" class="btn btn-secondary" style="display:none;" target="_blank" rel="noopener">
+                            <span class="icon">📄</span>
+                            Download Report
+                        </a>
                     </div>
                 </div>
             </div>
@@ -204,13 +208,15 @@
                 .then(data => {
                     detectedOS = data.os_type || 'Unknown';
                     
-                    // Auto-select detected OS
+                    // Auto-select detected OS and trigger event
                     if (detectedOS === 'Windows') {
                         document.getElementById('osWindows').checked = true;
                         selectedOS = 'Windows';
+                        document.getElementById('osWindows').dispatchEvent(new Event('change'));
                     } else if (detectedOS === 'Linux') {
                         document.getElementById('osLinux').checked = true;
                         selectedOS = 'Linux';
+                        document.getElementById('osLinux').dispatchEvent(new Event('change'));
                     }
 
                     // record powershell availability for later UI warnings
@@ -419,6 +425,13 @@
             
             // Display detailed results
             displayDetailedResults(results.checks || []);
+
+            // Show download report button when we have an id
+            if (results.scan_id) {
+                const dl = document.getElementById('downloadReportBtn');
+                dl.href = `/api/scan/${results.scan_id}/download/html`;
+                dl.style.display = 'inline-flex';
+            }
             
             scanInProgress = false;
         }
