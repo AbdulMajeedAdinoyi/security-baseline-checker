@@ -58,10 +58,13 @@
                     const scoreClass = score >= 80 ? 'good' : score >= 60 ? 'warning' : 'bad';
                     const date = new Date(scan.scan_date).toLocaleString();
                     
+                    const osLabel = scan.os_used ? (scan.os_used + (scan.os_overridden ? ' (overridden)' : '')) : scan.os;
+                    const psBadge = (scan.powershell_available === false) ? ' <span class="badge error">PS missing</span>' : '';
+                    
                     tableHTML += `
                         <tr>
                             <td>${date}</td>
-                            <td title="Detected: ${scan.detected_os || ''}">${scan.os_used ? (scan.os_used + (scan.os_overridden ? ' (overridden)' : '')) : scan.os}</td>
+                            <td title="Detected: ${scan.detected_os || ''}">${osLabel}${psBadge}</td>
                             <td class="${scoreClass}">${score}%</td>
                             <td>${scan.total_checks}</td>
                         </tr>

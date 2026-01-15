@@ -61,7 +61,10 @@ class SecurityBaselineScanner:
         
         # Load appropriate modules
         try:
+            powershell_available = None
             if os_type == "Windows":
+                import shutil
+                powershell_available = bool(shutil.which('powershell') or shutil.which('pwsh'))
                 from modules.windows import password_check, firewall_check, service_check
                 modules = {
                     'Password Policy': password_check,
@@ -78,6 +81,9 @@ class SecurityBaselineScanner:
                 }
         except Exception as e:
             return {'error': f'Failed to load checking modules: {str(e)}'}
+
+        # Record powershell availability if relevant
+        self.results['powershell_available'] = powershell_available
         
         # Run each check
         for name, module in modules.items():
@@ -170,12 +176,18 @@ def get_history():
 def system_info():
     """API endpoint to get system information"""
     try:
+        import shutil
         detector = PlatformDetector()
         os_type = detector.detect_platform()
         details = detector.get_os_details()
+
+        # Check for PowerShell availability on the host (powershell or pwsh)
+        ps_available = bool(shutil.which('powershell') or shutil.which('pwsh'))
+
         return jsonify({
             'os_type': os_type,
-            'details': details
+            'details': details,
+            'powershell_available': ps_available
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500

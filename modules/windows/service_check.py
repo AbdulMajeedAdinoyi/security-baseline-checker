@@ -1,12 +1,27 @@
 import subprocess
 import json
+import shutil
 
 class WindowsServiceChecker:
     def __init__(self, baseline_config):
         self.baseline = baseline_config
 
+    def find_powershell(self):
+        for cmd in ('powershell', 'pwsh'):
+            if shutil.which(cmd):
+                return cmd
+        return None
+
     def check_services(self):
         """Check that services listed under baseline.services.disabled are stopped/disabled"""
+        ps_cmd = self.find_powershell()
+        if not ps_cmd:
+            return {
+                'status': 'error',
+                'category': 'Services',
+                'message': 'PowerShell/pwsh not available on this host. Install PowerShell or run this scan from a Windows host.'
+            }
+
         try:
             disabled = self.baseline.get('services', {}).get('disabled', [])
             issues = []
@@ -15,7 +30,7 @@ class WindowsServiceChecker:
                 try:
                     command = f"Get-Service -Name '{svc}' -ErrorAction SilentlyContinue | Select-Object Name, Status | ConvertTo-Json"
                     result = subprocess.run(
-                        ["powershell", "-Command", command],
+                        [ps_cmd, "-Command", command],
                         capture_output=True,
                         text=True,
                         timeout=20

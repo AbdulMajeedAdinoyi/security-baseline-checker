@@ -352,6 +352,44 @@ h3 {
     padding-left: 0.5rem;
 }
 
+.badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.badge.error {
+    background: #fadbd8;
+    color: var(--danger-color);
+}
+
+/* Modal for confirmations */
+.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.5);
+    z-index: 50;
+}
+
+.modal-content {
+    background: var(--white);
+    padding: 1.5rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 480px;
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-content h4 {
+    margin-bottom: 0.5rem;
+}
+
 .history-table .good {
     background-color: #d5f4e6;
     color: var(--success-color);

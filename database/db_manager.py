@@ -22,6 +22,7 @@ class DatabaseManager:
                 detected_os TEXT,
                 os_used TEXT,
                 os_overridden INTEGER DEFAULT 0,
+                powershell_available INTEGER DEFAULT NULL,
                 overall_compliance_score REAL,
                 total_checks INTEGER,
                 compliant_count INTEGER,
@@ -54,7 +55,8 @@ class DatabaseManager:
         needed_cols = {
             'detected_os': "ALTER TABLE ScanSession ADD COLUMN detected_os TEXT",
             'os_used': "ALTER TABLE ScanSession ADD COLUMN os_used TEXT",
-            'os_overridden': "ALTER TABLE ScanSession ADD COLUMN os_overridden INTEGER DEFAULT 0"
+            'os_overridden': "ALTER TABLE ScanSession ADD COLUMN os_overridden INTEGER DEFAULT 0",
+            'powershell_available': "ALTER TABLE ScanSession ADD COLUMN powershell_available INTEGER DEFAULT NULL"
         }
 
         for col, alter_sql in needed_cols.items():
@@ -77,10 +79,10 @@ class DatabaseManager:
             # Insert scan session
             cursor.execute('''
                 INSERT INTO ScanSession (
-                scan_date, scan_duration, operating_system, detected_os, os_used, os_overridden,
+                scan_date, scan_duration, operating_system, detected_os, os_used, os_overridden, powershell_available,
                 overall_compliance_score, total_checks,
                 compliant_count, non_compliant_count, warning_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
                 datetime.now().isoformat(),
                 scan_data.get('duration', 0),
@@ -88,6 +90,7 @@ class DatabaseManager:
                 scan_data.get('detected_os', None),
                 scan_data.get('os_used', None),
                 1 if scan_data.get('os_overridden') else 0,
+                1 if scan_data.get('powershell_available') else (0 if scan_data.get('powershell_available') is False else None),
                 scan_data.get('score', 0),
                 scan_data.get('total_checks', 0),
                 scan_data.get('compliant_count', 0),
@@ -129,7 +132,7 @@ class DatabaseManager:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT scan_id, scan_date, operating_system, detected_os, os_used, os_overridden,
+            SELECT scan_id, scan_date, operating_system, detected_os, os_used, os_overridden, powershell_available,
                    overall_compliance_score, total_checks
             FROM ScanSession
             ORDER BY scan_date DESC
@@ -146,6 +149,7 @@ class DatabaseManager:
             'detected_os': r[3],
             'os_used': r[4],
             'os_overridden': bool(r[5]),
-            'score': r[6],
-            'total_checks': r[7]
+            'powershell_available': None if r[6] is None else bool(r[6]),
+            'score': r[7],
+            'total_checks': r[8]
         } for r in results]
