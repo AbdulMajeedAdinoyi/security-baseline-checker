@@ -8,17 +8,20 @@ class DatabaseManager:
         self.init_database()
     
     def init_database(self):
-        """Initialize database tables"""
+        """Initialize database tables and apply safe migrations"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        # Create ScanSession table
+        # Create ScanSession table (with latest schema)
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS ScanSession (
                 scan_id INTEGER PRIMARY KEY AUTOINCREMENT,
                 scan_date TEXT NOT NULL,
                 scan_duration INTEGER,
                 operating_system TEXT,
+                detected_os TEXT,
+                os_used TEXT,
+                os_overridden INTEGER DEFAULT 0,
                 overall_compliance_score REAL,
                 total_checks INTEGER,
                 compliant_count INTEGER,
@@ -43,7 +46,25 @@ class DatabaseManager:
                 FOREIGN KEY (scan_id) REFERENCES ScanSession (scan_id)
             )
         ''')
-        
+
+        # Safe migration: ensure new columns exist on existing DB
+        cursor.execute("PRAGMA table_info('ScanSession')")
+        existing_cols = {row[1] for row in cursor.fetchall()}
+
+        needed_cols = {
+            'detected_os': "ALTER TABLE ScanSession ADD COLUMN detected_os TEXT",
+            'os_used': "ALTER TABLE ScanSession ADD COLUMN os_used TEXT",
+            'os_overridden': "ALTER TABLE ScanSession ADD COLUMN os_overridden INTEGER DEFAULT 0"
+        }
+
+        for col, alter_sql in needed_cols.items():
+            if col not in existing_cols:
+                try:
+                    cursor.execute(alter_sql)
+                except Exception as e:
+                    # If column already exists due to race-conditions or concurrent migrations, ignore
+                    print(f"Migration: failed to add column {col}: {e}")
+
         conn.commit()
         conn.close()
     
@@ -56,14 +77,17 @@ class DatabaseManager:
             # Insert scan session
             cursor.execute('''
                 INSERT INTO ScanSession (
-                    scan_date, scan_duration, operating_system,
-                    overall_compliance_score, total_checks,
-                    compliant_count, non_compliant_count, warning_count
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (
+                scan_date, scan_duration, operating_system, detected_os, os_used, os_overridden,
+                overall_compliance_score, total_checks,
+                compliant_count, non_compliant_count, warning_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (
                 datetime.now().isoformat(),
                 scan_data.get('duration', 0),
                 scan_data.get('os_type', 'Unknown'),
+                scan_data.get('detected_os', None),
+                scan_data.get('os_used', None),
+                1 if scan_data.get('os_overridden') else 0,
                 scan_data.get('score', 0),
                 scan_data.get('total_checks', 0),
                 scan_data.get('compliant_count', 0),
@@ -105,7 +129,7 @@ class DatabaseManager:
         cursor = conn.cursor()
         
         cursor.execute('''
-            SELECT scan_id, scan_date, operating_system, 
+            SELECT scan_id, scan_date, operating_system, detected_os, os_used, os_overridden,
                    overall_compliance_score, total_checks
             FROM ScanSession
             ORDER BY scan_date DESC
@@ -119,6 +143,9 @@ class DatabaseManager:
             'scan_id': r[0],
             'scan_date': r[1],
             'os': r[2],
-            'score': r[3],
-            'total_checks': r[4]
+            'detected_os': r[3],
+            'os_used': r[4],
+            'os_overridden': bool(r[5]),
+            'score': r[6],
+            'total_checks': r[7]
         } for r in results]

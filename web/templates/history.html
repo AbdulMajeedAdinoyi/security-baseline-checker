@@ -61,7 +61,7 @@
                     tableHTML += `
                         <tr>
                             <td>${date}</td>
-                            <td>${scan.os}</td>
+                            <td>${scan.os_used ? (scan.os_used + (scan.os_overridden ? ' (overridden)' : '')) : scan.os}</td>
                             <td class="${scoreClass}">${score}%</td>
                             <td>${scan.total_checks}</td>
                         </tr>

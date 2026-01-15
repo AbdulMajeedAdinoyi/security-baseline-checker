@@ -30,6 +30,31 @@
                     <div id="systemInfoPre" class="loading">Loading system information...</div>
                 </div>
 
+                <div class="os-selection">
+                    <h4>Select Target Operating System</h4>
+                    <p class="info-text">⚠️ Detected OS will be shown, but you can override it for scanning</p>
+                    <div class="os-options">
+                        <label class="os-radio">
+                            <input type="radio" name="targetOS" value="Windows" id="osWindows">
+                            <span class="radio-label">
+                                <span class="os-icon">🪟</span>
+                                <span>Windows</span>
+                            </span>
+                        </label>
+                        <label class="os-radio">
+                            <input type="radio" name="targetOS" value="Linux" id="osLinux">
+                            <span class="radio-label">
+                                <span class="os-icon">🐧</span>
+                                <span>Linux</span>
+                            </span>
+                        </label>
+                    </div>
+                    <div id="osWarning" style="display: none;" class="warning-message">
+                        <strong>⚠️ OS Mismatch:</strong> Your detected OS is <span id="detectedOSName"></span>, but you selected <span id="selectedOSName"></span>.
+                        <p style="margin-top: 0.5rem; font-size: 0.9rem;">This is normal if scanning a remote system. Checks will be run for the selected OS.</p>
+                    </div>
+                </div>
+
                 <div class="scan-actions">
                     <button id="startScanBtn" class="btn btn-primary" onclick="startScan()">
                         <span class="icon">🔍</span>
@@ -102,6 +127,10 @@
                             <div class="summary-label">Scan Time</div>
                             <div class="summary-value" id="scanDuration">0s</div>
                         </div>
+                        <div class="summary-item">
+                            <div class="summary-label">OS Used</div>
+                            <div class="summary-value" id="osUsed">-</div>
+                        </div>
                     </div>
 
                     <div class="results-details">
@@ -134,21 +163,58 @@
         let scanInProgress = false;
         let startTime = 0;
         let elapsedInterval = null;
+        let detectedOS = '';
+        let selectedOS = '';
 
         // Load system information on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadSystemInfo();
+            setupOSSelection();
         });
+
+        function setupOSSelection() {
+            // Add event listeners to OS radio buttons
+            document.getElementById('osWindows').addEventListener('change', function() {
+                selectedOS = 'Windows';
+                checkOSMismatch();
+            });
+            document.getElementById('osLinux').addEventListener('change', function() {
+                selectedOS = 'Linux';
+                checkOSMismatch();
+            });
+        }
+
+        function checkOSMismatch() {
+            const warningDiv = document.getElementById('osWarning');
+            if (selectedOS && detectedOS && selectedOS !== detectedOS) {
+                warningDiv.style.display = 'block';
+                document.getElementById('detectedOSName').textContent = detectedOS;
+                document.getElementById('selectedOSName').textContent = selectedOS;
+            } else {
+                warningDiv.style.display = 'none';
+            }
+        }
 
         function loadSystemInfo() {
             fetch('/api/system/info')
                 .then(response => response.json())
                 .then(data => {
+                    detectedOS = data.os_type || 'Unknown';
+                    
+                    // Auto-select detected OS
+                    if (detectedOS === 'Windows') {
+                        document.getElementById('osWindows').checked = true;
+                        selectedOS = 'Windows';
+                    } else if (detectedOS === 'Linux') {
+                        document.getElementById('osLinux').checked = true;
+                        selectedOS = 'Linux';
+                    }
+                    
                     const systemInfoDiv = document.getElementById('systemInfoPre');
                     systemInfoDiv.innerHTML = `
                         <div class="info-grid">
                             <div class="info-item">
-                                <strong>Operating System:</strong>
+                                <strong>Detected Operating System:</strong>
                                 <span>${data.os_type || 'Unknown'}</span>
                             </div>
                             <div class="info-item">
@@ -175,6 +241,12 @@
 
         function startScan() {
             if (scanInProgress) return;
+            
+            // Validate OS selection
+            if (!selectedOS) {
+                alert('Please select a target operating system before scanning');
+                return;
+            }
 
             scanInProgress = true;
             startTime = Date.now();
@@ -197,8 +269,14 @@
             // Simulate progress updates
             simulateProgress();
             
-            // Start actual scan
-            fetch('/api/scan/start', { method: 'POST' })
+            // Start actual scan with selected OS
+            fetch('/api/scan/start', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ targetOS: selectedOS })
+            })
                 .then(response => response.json())
                 .then(data => {
                     clearInterval(elapsedInterval);
@@ -258,6 +336,22 @@
             document.getElementById('progressFill').style.width = '100%';
             document.getElementById('progressPercent').textContent = '100%';
             
+            // If the backend returned an error, show a concise failure state
+            if (results && results.error) {
+                document.getElementById('scanningSectionContainer').style.display = 'none';
+                document.getElementById('resultsSectionContainer').style.display = 'block';
+
+                document.getElementById('scoreNumber').textContent = '—';
+                document.getElementById('scoreCircle').className = 'score-circle bad';
+                document.getElementById('scoreMessage').textContent = 'Scan Failed';
+                document.getElementById('scoreDetails').textContent = results.error;
+                document.getElementById('resultsTable').innerHTML = `<p class="error">Error: ${results.error}</p>`;
+                document.getElementById('osUsed').textContent = results.os_used || results.os_type || results.detected_os || 'Unknown';
+
+                scanInProgress = false;
+                return;
+            }
+
             // Hide scanning section
             document.getElementById('scanningSectionContainer').style.display = 'none';
             
@@ -289,6 +383,17 @@
             document.getElementById('compliantCount').textContent = results.compliant_count || 0;
             document.getElementById('nonCompliantCount').textContent = results.non_compliant_count || 0;
             document.getElementById('scanDuration').textContent = (results.duration || 0) + 's';
+
+            // Show which OS was used and indicate override/difference when relevant
+            const osUsed = results.os_used || results.os_type || results.detected_os || 'Unknown';
+            let osNote = osUsed;
+            if (results.os_overridden) {
+                osNote += ' (overridden)';
+            }
+            if (results.detected_os && results.detected_os !== osUsed) {
+                osNote += ` — detected: ${results.detected_os}`;
+            }
+            document.getElementById('osUsed').textContent = osNote;
             
             // Display detailed results
             displayDetailedResults(results.checks || []);

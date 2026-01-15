@@ -9,14 +9,19 @@ app = Flask(__name__, template_folder='web/templates', static_folder='web/static
 db_manager = DatabaseManager()
 
 class SecurityBaselineScanner:
-    def __init__(self):
+    def __init__(self, os_override=None):
         self.baseline = self.load_config('config/baseline.json')
         self.platform = PlatformDetector()
+        self.os_override = os_override  # allow manual OS selection override
         self.results = {
             'scan_id': None,
             'checks': [],
             'score': 0,
             'os_type': None,
+            'detected_os': None,
+            'os_used': None,
+            'os_overridden': False,
+            'requested_target': None,
             'duration': 0
         }
     
@@ -35,13 +40,24 @@ class SecurityBaselineScanner:
         
         print("Starting security baseline scan...")
         
-        # Detect platform
-        os_type = self.platform.detect_platform()
-        if not os_type:
-            return {'error': 'Unsupported operating system'}
-        
-        print(f"Detected platform: {os_type}")
+        # Detect platform for information purposes and honor override when provided
+        detected = self.platform.detect_platform()
+        self.results['detected_os'] = detected or 'Unknown'
+        self.results['requested_target'] = self.os_override
+
+        if self.os_override:
+            os_type = self.os_override
+            self.results['os_overridden'] = True
+            print(f"Using manual OS override: {os_type}")
+        else:
+            if not detected:
+                return {'error': 'Unsupported operating system'}
+            os_type = detected
+            self.results['os_overridden'] = False
+            print(f"Detected platform: {os_type}")
+
         self.results['os_type'] = os_type
+        self.results['os_used'] = os_type
         
         # Load appropriate modules
         try:
@@ -129,7 +145,12 @@ def history_page():
 def start_scan():
     """API endpoint to start a new scan"""
     try:
-        scanner = SecurityBaselineScanner()
+        data = request.get_json(silent=True) or {}
+        target_os = data.get('targetOS')
+        if target_os and target_os not in ['Windows', 'Linux']:
+            return jsonify({'error': 'Invalid targetOS. Must be "Windows" or "Linux"'}), 400
+
+        scanner = SecurityBaselineScanner(os_override=target_os)
         results = scanner.run_scan()
         return jsonify(results)
     except Exception as e:
