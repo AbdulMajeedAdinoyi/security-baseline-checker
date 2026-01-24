@@ -153,13 +153,16 @@ def start_scan():
     try:
         data = request.get_json(silent=True) or {}
         target_os = data.get('targetOS')
+        print(f"[SCAN] Received scan request with targetOS: {target_os}")
         if target_os and target_os not in ['Windows', 'Linux']:
             return jsonify({'error': 'Invalid targetOS. Must be "Windows" or "Linux"'}), 400
 
         scanner = SecurityBaselineScanner(os_override=target_os)
         results = scanner.run_scan()
+        print(f"[SCAN] Scan completed with score: {results.get('score')}")
         return jsonify(results)
     except Exception as e:
+        print(f"[SCAN] Error during scan: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/scan/history')

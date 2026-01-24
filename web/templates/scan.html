@@ -87,6 +87,24 @@
                 </div>
             </div>
 
+            <!-- Scanning Progress Section -->
+            <div id="scanningSectionContainer" style="display: none;">
+                <div class="scan-card">
+                    <h3>🔍 Security Scan in Progress</h3>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div id="progressFill" class="progress-fill"></div>
+                        </div>
+                        <div id="progressPercent" class="progress-percent">0%</div>
+                    </div>
+                    
+                    <div id="scanStatus" class="scan-status">Initializing scan...</div>
+                    
+                    <div id="elapsedTime" class="elapsed-time">Elapsed time: 0s</div>
+                </div>
+            </div>
+
             <!-- Results Section -->
             <div id="resultsSectionContainer" style="display: none;">
                 <div class="scan-card results-card">
@@ -164,8 +182,11 @@
         let selectedOS = '';
         let powershellAvailable = true; // will be set on load
 
+        console.log('[page] Scan page loaded, initializing...');
+
         // Load system information on page load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('[DOMContentLoaded] Event fired, loading system info...');
             loadSystemInfo();
             setupOSSelection();
         });
@@ -252,10 +273,12 @@
         }
 
         function startScan() {
+            console.log('[startScan] Called, scanInProgress:', scanInProgress, 'selectedOS:', selectedOS);
             if (scanInProgress) return;
             
             // Validate OS selection
             if (!selectedOS) {
+                console.warn('[startScan] No OS selected, showing alert');
                 alert('Please select a target operating system before scanning');
                 return;
             }
@@ -270,6 +293,7 @@
         }
 
         function startScanConfirmed() {
+            console.log('[startScanConfirmed] Starting scan with OS:', selectedOS);
             scanInProgress = true;
             startTime = Date.now();
             
@@ -295,21 +319,27 @@
             simulateProgress();
             
             // Start actual scan with selected OS
+            const payload = { targetOS: selectedOS };
+            console.log('[fetch] Sending POST to /api/scan/start with payload:', payload);
             fetch('/api/scan/start', { 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ targetOS: selectedOS })
+                body: JSON.stringify(payload)
             })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('[fetch] Response received, status:', response.status);
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('[fetch] Data received:', data);
                     clearInterval(elapsedInterval);
                     displayResults(data);
                 })
                 .catch(error => {
                     clearInterval(elapsedInterval);
-                    console.error('Scan error:', error);
+                    console.error('[fetch] Scan error:', error);
                     document.getElementById('scanStatus').textContent = 'Scan failed: ' + error.message;
                     scanInProgress = false;
                 });
@@ -357,12 +387,14 @@
         }
 
         function displayResults(results) {
+            console.log('[displayResults] Called with results:', results);
             // Complete the progress bar
             document.getElementById('progressFill').style.width = '100%';
             document.getElementById('progressPercent').textContent = '100%';
             
             // If the backend returned an error, show a concise failure state
             if (results && results.error) {
+                console.warn('[displayResults] Error in results:', results.error);
                 document.getElementById('scanningSectionContainer').style.display = 'none';
                 document.getElementById('resultsSectionContainer').style.display = 'block';
 
@@ -433,6 +465,7 @@
                 dl.style.display = 'inline-flex';
             }
             
+            console.log('[displayResults] Completed successfully');
             scanInProgress = false;
         }
 

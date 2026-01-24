@@ -753,6 +753,31 @@ footer {
     margin-top: 1rem;
 }
 
+.scan-status {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: rgba(52, 152, 219, 0.1);
+    border-left: 4px solid #3498db;
+    border-radius: 4px;
+}
+
+.scan-status-spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(52, 152, 219, 0.3);
+    border-top-color: #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.scan-status-text {
+    color: var(--light-text);
+    font-size: 0.95rem;
+}
+
 /* ===========================
    Scan Details / Checklist
    =========================== */
