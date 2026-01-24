@@ -195,7 +195,7 @@ def download_history_html():
             full = db_manager.get_scan_by_id(entry['scan_id'])
             if full:
                 scans.append(full)
-        html = render_template('history_report.html', scans=scans)
+        html = render_template('history_report.html', scans=scans, now=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         resp = app.response_class(html, mimetype='text/html')
         resp.headers['Content-Disposition'] = f'attachment; filename=scan_history.html'
         return resp

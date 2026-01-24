@@ -5,40 +5,119 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Scan History Report</title>
   <style>
-    body { font-family: Arial, Helvetica, sans-serif; margin: 1rem; color: #222 }
-    h1 { color: #2c3e50 }
-    .scan { border:1px solid #eee; padding:1rem; border-radius:6px; margin-bottom:1rem }
-    .scan h2 { margin:0 0 0.5rem 0 }
-    table { width:100%; border-collapse: collapse; margin-top:0.5rem }
-    th, td { border:1px solid #ddd; padding:0.5rem; text-align:left }
-    th { background:#f7f7f7 }
+    body { font-family: Arial, Helvetica, sans-serif; margin: 2rem; color: #222; background: #f9f9f9 }
+    h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 0.5rem }
+    .scan { border:1px solid #ddd; padding:1.5rem; border-radius:8px; margin-bottom:2rem; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05) }
+    .scan h2 { margin:0 0 0.5rem 0; color: #2c3e50 }
+    .scan-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem }
+    .score-badge { font-size: 1.5rem; font-weight: bold; padding: 0.5rem 1rem; border-radius: 4px; color: white }
+    .score-good { background: #27ae60 }
+    .score-warning { background: #f39c12 }
+    .score-bad { background: #e74c3c }
+    table { width:100%; border-collapse: collapse; margin-top:1rem }
+    th, td { border:1px solid #ddd; padding:0.75rem; text-align:left }
+    th { background:#ecf0f1; font-weight: bold; color: #2c3e50 }
+    tr:nth-child(even) { background: #f9f9f9 }
+    .status-badge { padding: 0.25rem 0.75rem; border-radius: 3px; font-weight: bold; font-size: 0.9rem }
+    .status-compliant { background: #d4edda; color: #155724 }
+    .status-non-compliant { background: #f8d7da; color: #721c24 }
+    .status-error { background: #f8d7da; color: #721c24 }
+    .status-warning { background: #fff3cd; color: #856404 }
+    .issue-item { margin: 0.5rem 0; padding: 0.5rem; background: #f0f0f0; border-left: 3px solid #e74c3c; border-radius: 2px }
+    .issue-severity { font-weight: bold; font-size: 0.85rem; margin-right: 0.5rem }
+    .severity-high { color: #c0392b }
+    .severity-medium { color: #e67e22 }
+    .severity-low { color: #3498db }
+    .remediation { margin-top: 0.5rem; padding: 0.5rem; background: #e8f4f8; border-left: 3px solid #3498db; font-style: italic }
     .muted { color:#666; font-size:0.9rem }
+    .scan-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem }
+    .meta-item { padding: 0.5rem; background: #f5f5f5; border-radius: 4px }
+    .meta-label { font-weight: bold; color: #555 }
+    .meta-value { color: #222 }
+    .page-break { page-break-after: always; margin: 2rem 0 }
+    @media print {
+      body { margin: 0; padding: 1rem }
+      .page-break { margin: 3rem 0; border-top: 1px dashed #ccc; padding-top: 3rem }
+    }
   </style>
 </head>
 <body>
-  <h1>All Scan History</h1>
+  <h1>Security Baseline Compliance - Scan History Report</h1>
+  <p class="muted">Generated on {{ now }}</p>
+  
   {% if scans %}
+    <p><strong>Total Scans:</strong> {{ scans|length }}</p>
+    
     {% for s in scans %}
       <div class="scan">
-        <h2>Scan {{ s.scan_id }} — {{ s.scan_date }}</h2>
-        <div class="muted">OS: {{ s.os_used or s.os_type }}{% if s.os_overridden %} (overridden){% endif %} — Score: {{ s.score }}% — Duration: {{ s.duration }}s</div>
+        <div class="scan-header">
+          <h2>Scan #{{ s.scan_id }} — {{ s.scan_date }}</h2>
+          <div class="score-badge {% if s.score >= 80 %}score-good{% elif s.score >= 60 %}score-warning{% else %}score-bad{% endif %}">
+            {{ s.score }}%
+          </div>
+        </div>
+        
+        <div class="scan-meta">
+          <div class="meta-item">
+            <div class="meta-label">Operating System</div>
+            <div class="meta-value">{{ s.os_used or s.os_type }}{% if s.os_overridden %} <em>(overridden)</em>{% endif %}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Duration</div>
+            <div class="meta-value">{{ s.duration or 0 }}s</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Total Checks</div>
+            <div class="meta-value">{{ s.total_checks or (s.checks|length if s.checks else 0) }}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Compliant</div>
+            <div class="meta-value" style="color: #27ae60"><strong>{{ s.compliant_count or 0 }}</strong></div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Non-Compliant</div>
+            <div class="meta-value" style="color: #e74c3c"><strong>{{ s.non_compliant_count or 0 }}</strong></div>
+          </div>
+        </div>
+        
         {% if s.checks %}
+          <h3>Compliance Check Details</h3>
           <table>
-            <thead><tr><th>Check</th><th>Status</th><th>Details</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Check Name</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Findings</th>
+              </tr>
+            </thead>
             <tbody>
               {% for c in s.checks %}
                 <tr>
-                  <td>{{ c.name }}</td>
-                  <td>{{ c.status }}</td>
+                  <td><strong>{{ c.name }}</strong></td>
+                  <td>{{ c.category or c.name }}</td>
+                  <td><span class="status-badge status-{{ c.status }}">{{ c.status|upper }}</span></td>
                   <td>
                     {% if c.issues %}
-                      <ul>
-                        {% for it in c.issues %}
-                          <li>{{ it.issue }}{% if it.remediation %} — Remediation: {{ it.remediation }}{% endif %}</li>
-                        {% endfor %}
-                      </ul>
+                      {% for it in c.issues %}
+                        <div class="issue-item">
+                          <strong>Issue:</strong> {{ it.issue }}
+                          {% if it.severity %}
+                            <span class="issue-severity severity-{{ it.severity|lower }}">[ {{ it.severity }} ]</span>
+                          {% endif %}
+                          {% if it.remediation %}
+                            <div class="remediation">
+                              <strong>Remediation:</strong> {{ it.remediation }}
+                            </div>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                    {% elif c.message %}
+                      <div class="issue-item">{{ c.message }}</div>
+                    {% elif c.description %}
+                      <div class="issue-item">{{ c.description }}</div>
                     {% else %}
-                      {{ c.message or c.description or 'N/A' }}
+                      <div class="issue-item">No additional details available</div>
                     {% endif %}
                   </td>
                 </tr>
@@ -47,12 +126,13 @@
           </table>
         {% endif %}
       </div>
+      <div class="page-break"></div>
     {% endfor %}
   {% else %}
-    <p class="no-data">No scans found</p>
+    <p class="muted">No scans found</p>
   {% endif %}
 
   <hr />
-  <div class="muted">Generated by Security Baseline Checker</div>
+  <div class="muted">Report generated by Security Baseline Checker | Copyright 2026</div>
 </body>
 </html>
