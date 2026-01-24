@@ -5,6 +5,300 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Security Baseline Checker - Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        .dashboard {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .hero-banner {
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            color: white;
+            padding: 4rem 2rem;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(99, 102, 241, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-banner h2 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .hero-banner p {
+            color: rgba(255, 255, 255, 0.95);
+            font-size: 1.15rem;
+            margin: 0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+            border-color: #6366f1;
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #6366f1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .system-info {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .info-item {
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid #6366f1;
+        }
+
+        .info-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .status-good {
+            background: rgba(16, 185, 129, 0.1);
+            color: #047857;
+        }
+
+        .status-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #92400e;
+        }
+
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .section h3 {
+            color: #0f172a;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.4rem;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #6366f1;
+            border: 2px solid #6366f1;
+        }
+
+        .btn-secondary:hover {
+            background: #6366f1;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .recent-scans-list {
+            margin-top: 1.5rem;
+        }
+
+        .scan-item {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #3b82f6;
+            transition: all 0.3s ease;
+        }
+
+        .scan-item:hover {
+            background: #eef2ff;
+            transform: translateX(4px);
+        }
+
+        .scan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .scan-date {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .scan-score {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .score-good {
+            background: rgba(16, 185, 129, 0.2);
+            color: #047857;
+        }
+
+        .score-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: #92400e;
+        }
+
+        .score-bad {
+            background: rgba(239, 68, 68, 0.2);
+            color: #991b1b;
+        }
+
+        .scan-details {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 768px) {
+            .hero-banner {
+                padding: 2rem 1rem;
+            }
+
+            .hero-banner h2 {
+                font-size: 1.75rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -14,37 +308,90 @@
                 <a href="/" class="active">Dashboard</a>
                 <a href="/scan">New Scan</a>
                 <a href="/history">History</a>
+                <a href="/baseline">Baseline</a>
             </nav>
         </header>
 
         <main class="dashboard">
-            <div class="welcome-section">
-                <h2>Welcome to Security Baseline Checker</h2>
-                <p>Monitor and verify your system's security configuration compliance</p>
+            <!-- Hero Banner -->
+            <div class="hero-banner">
+                <div class="hero-content">
+                    <h2>🛡️ Security Baseline Checker</h2>
+                    <p>Monitor your system's security compliance with powerful automated scanning</p>
+                </div>
             </div>
 
-            <div class="system-info" id="systemInfo">
-                <h3>System Information</h3>
-                <div class="loading">Loading system information...</div>
+            <!-- Quick Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-value" id="scanCount">0</div>
+                    <div class="stat-label">Total Scans</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✓</div>
+                    <div class="stat-value" id="avgScore">-</div>
+                    <div class="stat-label">Average Score</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-value" id="lastScan">-</div>
+                    <div class="stat-label">Last Scan</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔐</div>
+                    <div class="stat-value" id="platformCount">0</div>
+                    <div class="stat-label">Supported Platforms</div>
+                </div>
             </div>
 
-            <div class="quick-actions">
-                <h3>Quick Actions</h3>
+            <!-- System Information -->
+            <div class="system-info">
+                <h3>💻 System Information</h3>
+                <div class="info-grid" id="systemInfoGrid">
+                    <div class="info-item">
+                        <div class="info-label">Detected OS</div>
+                        <div class="info-value" id="detectedOS">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">PowerShell Status</div>
+                        <div class="info-value" id="psStatus">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="section">
+                <h3>🚀 Quick Actions</h3>
                 <div class="action-buttons">
                     <a href="/scan" class="btn btn-primary">
-                        <span class="icon">🔍</span>
+                        <span>🔍</span>
                         Start New Scan
                     </a>
-                    <a href="/history" class="btn btn-secondary">
-                        <span class="icon">📊</span>
+                    <a href="/history" class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                        <span>📊</span>
                         View History
+                    </a>
+                    <a href="/baseline" class="btn btn-primary" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                        <span>⚙️</span>
+                        Configure Baseline
                     </a>
                 </div>
             </div>
 
-            <div class="recent-scans" id="recentScans">
-                <h3>Recent Scans</h3>
-                <div class="loading">Loading recent scans...</div>
+            <!-- Recent Scans -->
+            <div class="section">
+                <h3>📋 Recent Scans</h3>
+                <div class="recent-scans-list" id="recentScansList">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>No scans yet. <a href="/scan" style="color: #6366f1; text-decoration: none; font-weight: 600;">Start your first scan →</a></p>
+                    </div>
+                </div>
             </div>
         </main>
 
@@ -54,75 +401,90 @@
     </div>
 
     <script>
-        // Load system information
-        fetch('/api/system/info')
-            .then(response => response.json())
-            .then(data => {
-                const systemInfoDiv = document.getElementById('systemInfo');
-                systemInfoDiv.innerHTML = `
-                    <h3>System Information</h3>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <strong>Operating System:</strong>
-                            <span>${data.os_type || 'Unknown'}</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>System:</strong>
-                            <span>${data.details.system || 'N/A'}</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Release:</strong>
-                            <span>${data.details.release || 'N/A'}</span>
-                        </div>
-                        <div class="info-item">
-                            <strong>Machine:</strong>
-                            <span>${data.details.machine || 'N/A'}</span>
-                        </div>
-                    </div>
-                `;
-            })
-            .catch(error => {
-                document.getElementById('systemInfo').innerHTML = 
-                    '<p class="error">Failed to load system information</p>';
-            });
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSystemInfo();
+            loadStats();
+        });
 
-        // Load recent scans
-        fetch('/api/scan/history?limit=5')
-            .then(response => response.json())
-            .then(data => {
-                const recentScansDiv = document.getElementById('recentScans');
-                
-                if (data.length === 0) {
-                    recentScansDiv.innerHTML = `
-                        <h3>Recent Scans</h3>
-                        <p class="no-data">No scans found. Start your first scan!</p>
-                    `;
-                    return;
-                }
-
-                let scansHTML = '<h3>Recent Scans</h3><div class="scans-list">';
-                data.forEach(scan => {
-                    const score = scan.score || 0;
-                    const scoreClass = score >= 80 ? 'good' : score >= 60 ? 'warning' : 'bad';
-                    const date = new Date(scan.scan_date).toLocaleString();
+        function loadSystemInfo() {
+            fetch('/api/system/info')
+                .then(r => r.json())
+                .then(data => {
+                    const osType = data.os_type || 'Unknown';
+                    const psAvailable = data.powershell_available ? '✓ Available' : '⚠ Not Available';
+                    const psClass = data.powershell_available ? 'status-good' : 'status-warning';
                     
-                    scansHTML += `
-                        <div class="scan-item">
-                            <div class="scan-date">${date}</div>
-                            <div class="scan-os">${scan.os}</div>
-                            <div class="scan-score ${scoreClass}">${score}%</div>
-                            <div class="scan-checks">${scan.total_checks} checks</div>
-                        </div>
-                    `;
+                    document.getElementById('detectedOS').innerHTML = `<span class="status-badge status-good">${osType}</span>`;
+                    document.getElementById('psStatus').innerHTML = `<span class="status-badge ${psClass}">${psAvailable}</span>`;
+                })
+                .catch(() => {
+                    document.getElementById('detectedOS').innerHTML = '<span class="status-badge status-warning">Error</span>';
+                    document.getElementById('psStatus').innerHTML = '<span class="status-badge status-warning">Error</span>';
                 });
-                scansHTML += '</div>';
-                
-                recentScansDiv.innerHTML = scansHTML;
-            })
-            .catch(error => {
-                document.getElementById('recentScans').innerHTML = 
-                    '<h3>Recent Scans</h3><p class="error">Failed to load recent scans</p>';
-            });
+        }
+
+        function loadStats() {
+            fetch('/api/scan/history?limit=100')
+                .then(r => r.json())
+                .then(data => {
+                    // Total scans
+                    document.getElementById('scanCount').textContent = data.length;
+
+                    // Average score
+                    if (data.length > 0) {
+                        const avgScore = Math.round(data.reduce((sum, s) => sum + (s.score || 0), 0) / data.length);
+                        document.getElementById('avgScore').textContent = avgScore + '%';
+                    }
+
+                    // Last scan
+                    if (data.length > 0) {
+                        const lastDate = new Date(data[0].scan_date);
+                        const now = new Date();
+                        const diffMinutes = Math.floor((now - lastDate) / 60000);
+                        
+                        let timeStr;
+                        if (diffMinutes < 1) timeStr = 'Just now';
+                        else if (diffMinutes < 60) timeStr = diffMinutes + 'm ago';
+                        else if (diffMinutes < 1440) timeStr = Math.floor(diffMinutes / 60) + 'h ago';
+                        else timeStr = Math.floor(diffMinutes / 1440) + 'd ago';
+                        
+                        document.getElementById('lastScan').textContent = timeStr;
+                    }
+
+                    // Recent scans list
+                    const listHTML = data.slice(0, 5).map(scan => {
+                        const date = new Date(scan.scan_date).toLocaleDateString();
+                        const score = scan.score || 0;
+                        const scoreClass = score >= 80 ? 'score-good' : score >= 60 ? 'score-warning' : 'score-bad';
+                        return `
+                            <div class="scan-item">
+                                <div class="scan-header">
+                                    <span class="scan-date">${date} - ${scan.os_used || scan.os}</span>
+                                    <span class="scan-score ${scoreClass}">${score}%</span>
+                                </div>
+                                <div class="scan-details">
+                                    ${scan.total_checks} checks • ${scan.compliant_count || 0} compliant
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    
+                    const listEl = document.getElementById('recentScansList');
+                    if (data.length === 0) {
+                        listEl.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📭</div>
+                                <p>No scans yet. <a href="/scan" style="color: #6366f1; text-decoration: none; font-weight: 600;">Start your first scan →</a></p>
+                            </div>
+                        `;
+                    } else {
+                        listEl.innerHTML = listHTML;
+                    }
+                });
+
+            // Supported platforms
+            document.getElementById('platformCount').textContent = '2';
+        }
     </script>
 </body>
 </html>

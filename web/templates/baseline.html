@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baseline Configuration - Security Baseline Checker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <style>
+        .baseline-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .editor-section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .editor-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .editor-header h2 {
+            margin: 0;
+            font-size: 1.75rem;
+        }
+
+        .editor-icon {
+            font-size: 2rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 2rem;
+        }
+
+        .tab-btn {
+            padding: 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #64748b;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            color: #6366f1;
+        }
+
+        .tab-btn.active {
+            color: #6366f1;
+            border-bottom-color: #6366f1;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .config-box {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .config-box:hover {
+            border-color: #6366f1;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+        }
+
+        .config-box h3 {
+            color: #6366f1;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-group textarea {
+            font-family: 'Monaco', 'Courier New', monospace;
+            min-height: 300px;
+            resize: vertical;
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .service-list {
+            margin-bottom: 1rem;
+        }
+
+        .service-item {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .service-item input {
+            flex: 1;
+        }
+
+        .btn-remove {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-remove:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+
+        .btn-add {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+        }
+
+        .btn-add:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1 0%, #3b82f6 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+            transform: translateY(-2px);
+        }
+
+        .message {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: #047857;
+            border-left: 4px solid #10b981;
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .current-baseline {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 1.5rem;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .baseline-display {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            font-family: 'Monaco', monospace;
+            font-size: 0.85rem;
+            color: #0f172a;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+        }
+
+        .info-banner {
+            background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .info-banner-icon {
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .info-banner-content h3 {
+            color: white;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .info-banner-content p {
+            color: rgba(255, 255, 255, 0.9);
+            margin: 0;
+        }
+
+        .visual-editor {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔒 Security Baseline Checker</h1>
+            <nav>
+                <a href="/">Dashboard</a>
+                <a href="/scan">New Scan</a>
+                <a href="/history">History</a>
+                <a href="/baseline" class="active">Baseline</a>
+            </nav>
+        </header>
+
+        <main class="baseline-container">
+            <div class="info-banner">
+                <div class="info-banner-icon">⚙️</div>
+                <div class="info-banner-content">
+                    <h3>Customize Your Security Baseline</h3>
+                    <p>Define security requirements without coding. Your baseline will be used in all future scans.</p>
+                </div>
+            </div>
+
+            <div id="message" class="message"></div>
+
+            <div class="editor-section">
+                <div class="editor-header">
+                    <span class="editor-icon">📋</span>
+                    <h2>Configuration Editor</h2>
+                </div>
+
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('visual')">🎨 Visual Editor</button>
+                    <button class="tab-btn" onclick="switchTab('json')">{ } JSON Editor</button>
+                </div>
+
+                <!-- VISUAL EDITOR TAB -->
+                <div id="visual" class="tab-content active">
+                    <div class="visual-editor">
+                        <!-- Password Policy -->
+                        <div class="config-box">
+                            <h3>🔐 Password Policy</h3>
+                            <div class="form-group">
+                                <label>Minimum Length</label>
+                                <input type="number" id="minLength" min="4" max="128" placeholder="e.g., 8">
+                                <p class="help-text">Minimum characters required in passwords</p>
+                            </div>
+                            <div class="form-group">
+                                <label>Require Complexity</label>
+                                <select id="complexity">
+                                    <option value="true">Yes (Uppercase, numbers, symbols)</option>
+                                    <option value="false">No</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Maximum Age (days)</label>
+                                <input type="number" id="maxAge" min="30" max="365" placeholder="e.g., 90">
+                                <p class="help-text">Force password change after this many days</p>
+                            </div>
+                            <div class="form-group">
+                                <label>Password History</label>
+                                <input type="number" id="historySize" min="1" max="24" placeholder="e.g., 5">
+                                <p class="help-text">Remember this many old passwords</p>
+                            </div>
+                        </div>
+
+                        <!-- Firewall -->
+                        <div class="config-box">
+                            <h3>🔥 Firewall</h3>
+                            <div class="form-group">
+                                <label>Firewall Status</label>
+                                <select id="firewallEnabled">
+                                    <option value="true">✓ Enabled (Required)</option>
+                                    <option value="false">Disabled</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Firewall Profiles</label>
+                                <input type="text" id="firewallProfiles" placeholder="domain, private, public">
+                                <p class="help-text">Comma-separated list of profiles to monitor</p>
+                            </div>
+                        </div>
+
+                        <!-- Services -->
+                        <div class="config-box">
+                            <h3>⚡ Services to Disable</h3>
+                            <div class="service-list" id="servicesList"></div>
+                            <button class="btn-add" onclick="addService()">+ Add Service</button>
+                            <p class="help-text">These services should be disabled for security</p>
+                        </div>
+
+                        <!-- File Permissions -->
+                        <div class="config-box">
+                            <h3>🐧 File Permissions (Linux)</h3>
+                            <div class="form-group">
+                                <label>/etc/passwd</label>
+                                <input type="text" id="etcPasswd" placeholder="644" maxlength="3">
+                            </div>
+                            <div class="form-group">
+                                <label>/etc/shadow</label>
+                                <input type="text" id="etcShadow" placeholder="600" maxlength="3">
+                            </div>
+                            <div class="form-group">
+                                <label>SSH Config (~/.ssh/config)</label>
+                                <input type="text" id="sshConfig" placeholder="600" maxlength="3">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="saveVisualBaseline()">
+                            <span>💾</span> Save Configuration
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadDefaults()">
+                            <span>↺</span> Load Defaults
+                        </button>
+                    </div>
+                </div>
+
+                <!-- JSON EDITOR TAB -->
+                <div id="json" class="tab-content">
+                    <div class="form-group">
+                        <label>Edit Baseline Configuration (JSON)</label>
+                        <textarea id="jsonEditor" placeholder="Enter JSON configuration..."></textarea>
+                        <p class="help-text">Edit the raw JSON configuration directly</p>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="saveBaseline()">
+                            <span>💾</span> Save Configuration
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadDefaults()">
+                            <span>↺</span> Load Defaults
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Baseline Display -->
+            <div class="editor-section">
+                <div class="editor-header">
+                    <span class="editor-icon">✓</span>
+                    <h2>Current Baseline</h2>
+                </div>
+                <div class="baseline-display" id="currentBaseline">Loading baseline...</div>
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Security Baseline Checker | Confluence University Project</p>
+        </footer>
+    </div>
+
+    <script>
+        const DEFAULT_BASELINE = {
+            "password_policy": { "min_length": 8, "complexity_required": true, "max_age_days": 90, "history_size": 5 },
+            "firewall": { "enabled": true, "profiles": ["domain", "private", "public"] },
+            "services": { "disabled": ["Telnet", "RemoteRegistry", "SNMP"] },
+            "file_permissions": { "etc_passwd": "644", "etc_shadow": "600", "ssh_config": "600" }
+        };
+
+        let currentBaseline = null;
+        let services = [];
+
+        document.addEventListener('DOMContentLoaded', loadCurrentBaseline);
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (tab === 'json') loadJSONEditor();
+            else loadVisualEditor();
+        }
+
+        function loadCurrentBaseline() {
+            fetch('/api/baseline/get')
+                .then(r => r.json())
+                .then(data => {
+                    currentBaseline = data;
+                    updateDisplay();
+                })
+                .catch(() => {
+                    currentBaseline = DEFAULT_BASELINE;
+                    updateDisplay();
+                });
+        }
+
+        function updateDisplay() {
+            document.getElementById('currentBaseline').textContent = JSON.stringify(currentBaseline, null, 2);
+            loadJSONEditor();
+        }
+
+        function loadJSONEditor() {
+            document.getElementById('jsonEditor').value = JSON.stringify(currentBaseline || DEFAULT_BASELINE, null, 2);
+        }
+
+        function loadVisualEditor() {
+            const baseline = currentBaseline || DEFAULT_BASELINE;
+            document.getElementById('minLength').value = baseline.password_policy.min_length;
+            document.getElementById('complexity').value = baseline.password_policy.complexity_required;
+            document.getElementById('maxAge').value = baseline.password_policy.max_age_days;
+            document.getElementById('historySize').value = baseline.password_policy.history_size;
+            document.getElementById('firewallEnabled').value = baseline.firewall.enabled;
+            document.getElementById('firewallProfiles').value = baseline.firewall.profiles.join(', ');
+            document.getElementById('etcPasswd').value = baseline.file_permissions.etc_passwd;
+            document.getElementById('etcShadow').value = baseline.file_permissions.etc_shadow;
+            document.getElementById('sshConfig').value = baseline.file_permissions.ssh_config;
+            services = baseline.services.disabled || [];
+            renderServices();
+        }
+
+        function renderServices() {
+            const list = document.getElementById('servicesList');
+            list.innerHTML = '';
+            services.forEach((service, i) => {
+                const div = document.createElement('div');
+                div.className = 'service-item';
+                div.innerHTML = `
+                    <input type="text" value="${service}" onchange="services[${i}]=this.value">
+                    <button class="btn-remove" onclick="removeService(${i})">Remove</button>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function addService() { services.push(''); renderServices(); }
+        function removeService(i) { services.splice(i, 1); renderServices(); }
+
+        function loadDefaults() {
+            currentBaseline = JSON.parse(JSON.stringify(DEFAULT_BASELINE));
+            updateDisplay();
+            showMessage('Default baseline loaded!', 'success');
+        }
+
+        function saveBaseline() {
+            try {
+                const baseline = JSON.parse(document.getElementById('jsonEditor').value);
+                fetch('/api/baseline/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(baseline)
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        currentBaseline = baseline;
+                        updateDisplay();
+                        showMessage('✓ Baseline saved successfully!', 'success');
+                    } else {
+                        showMessage('✗ Error: ' + (data.error || 'Unknown'), 'error');
+                    }
+                });
+            } catch (e) {
+                showMessage('✗ Invalid JSON: ' + e.message, 'error');
+            }
+        }
+
+        function saveVisualBaseline() {
+            const baseline = {
+                "password_policy": {
+                    "min_length": parseInt(document.getElementById('minLength').value) || 8,
+                    "complexity_required": document.getElementById('complexity').value === 'true',
+                    "max_age_days": parseInt(document.getElementById('maxAge').value) || 90,
+                    "history_size": parseInt(document.getElementById('historySize').value) || 5
+                },
+                "firewall": {
+                    "enabled": document.getElementById('firewallEnabled').value === 'true',
+                    "profiles": document.getElementById('firewallProfiles').value.split(',').map(s => s.trim())
+                },
+                "services": {
+                    "disabled": services.filter(s => s.trim()).map(s => s.trim())
+                },
+                "file_permissions": {
+                    "etc_passwd": document.getElementById('etcPasswd').value || '644',
+                    "etc_shadow": document.getElementById('etcShadow').value || '600',
+                    "ssh_config": document.getElementById('sshConfig').value || '600'
+                }
+            };
+
+            fetch('/api/baseline/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(baseline)
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    currentBaseline = baseline;
+                    updateDisplay();
+                    showMessage('✓ Baseline saved successfully!', 'success');
+                } else {
+                    showMessage('✗ Error: ' + (data.error || 'Unknown'), 'error');
+                }
+            })
+            .catch(e => showMessage('✗ Error: ' + e.message, 'error'));
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.className = `message ${type}`;
+            msg.textContent = text;
+            msg.style.display = 'block';
+            setTimeout(() => msg.style.display = 'none', 4000);
+        }
+    </script>
+</body>
+</html>

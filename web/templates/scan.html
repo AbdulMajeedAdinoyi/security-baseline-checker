@@ -14,6 +14,7 @@
                 <a href="/">Dashboard</a>
                 <a href="/scan" class="active">New Scan</a>
                 <a href="/history">History</a>
+                <a href="/baseline">Baseline</a>
             </nav>
         </header>
 
@@ -160,9 +161,13 @@
                             <span class="icon">📊</span>
                             View History
                         </a>
-                        <a id="downloadReportBtn" class="btn btn-secondary" style="display:none;" target="_blank" rel="noopener">
+                        <a id="downloadReportHtmlBtn" class="btn btn-secondary" style="display:none;" target="_blank" rel="noopener" download>
                             <span class="icon">📄</span>
-                            Download Report
+                            Download HTML
+                        </a>
+                        <a id="downloadReportCsvBtn" class="btn btn-secondary" style="display:none;" target="_blank" rel="noopener" download>
+                            <span class="icon">📊</span>
+                            Download CSV
                         </a>
                     </div>
                 </div>
@@ -458,11 +463,17 @@
             // Display detailed results
             displayDetailedResults(results.checks || []);
 
-            // Show download report button when we have an id
+            // Show download report buttons when we have an id
             if (results.scan_id) {
-                const dl = document.getElementById('downloadReportBtn');
-                dl.href = `/api/scan/${results.scan_id}/download/html`;
-                dl.style.display = 'inline-flex';
+                const dlHtml = document.getElementById('downloadReportHtmlBtn');
+                dlHtml.href = `/api/scan/${results.scan_id}/download/html`;
+                dlHtml.download = `scan_${results.scan_id}.html`;
+                dlHtml.style.display = 'inline-flex';
+                
+                const dlCsv = document.getElementById('downloadReportCsvBtn');
+                dlCsv.href = `/api/scan/${results.scan_id}/download/csv`;
+                dlCsv.download = `scan_${results.scan_id}.csv`;
+                dlCsv.style.display = 'inline-flex';
             }
             
             console.log('[displayResults] Completed successfully');

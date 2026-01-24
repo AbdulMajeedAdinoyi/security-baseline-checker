@@ -1,6 +1,8 @@
 from flask import Flask, render_template, jsonify, request, send_file
 import json
 import time
+import csv
+import io
 from datetime import datetime
 from modules.platform_detector import PlatformDetector
 from database.db_manager import DatabaseManager
@@ -147,6 +149,11 @@ def history_page():
     """Scan history page"""
     return render_template('history.html')
 
+@app.route('/baseline')
+def baseline_page():
+    """Baseline configuration page"""
+    return render_template('baseline.html')
+
 @app.route('/api/scan/start', methods=['POST'])
 def start_scan():
     """API endpoint to start a new scan"""
@@ -226,6 +233,132 @@ def download_scan(scan_id):
         resp = jsonify(scan)
         resp.headers['Content-Disposition'] = f'attachment; filename=scan_{scan_id}.json'
         return resp
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/baseline/get')
+def get_baseline():
+    """Get the current baseline configuration"""
+    try:
+        with open('config/baseline.json', 'r') as f:
+            baseline = json.load(f)
+        return jsonify(baseline)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/baseline/save', methods=['POST'])
+def save_baseline():
+    """Save the baseline configuration"""
+    try:
+        data = request.get_json()
+        
+        # Validate the JSON structure
+        if not isinstance(data, dict):
+            return jsonify({'error': 'Invalid baseline format'}), 400
+        
+        # Save to file
+        with open('config/baseline.json', 'w') as f:
+            json.dump(data, f, indent=2)
+        
+        return jsonify({'status': 'ok', 'message': 'Baseline saved successfully'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scan/<int:scan_id>/download/csv')
+def download_scan_csv(scan_id):
+    """Return a scan result as a downloadable CSV file"""
+    try:
+        scan = db_manager.get_scan_by_id(scan_id)
+        if not scan:
+            return jsonify({'error': 'Scan not found'}), 404
+        
+        # Create CSV in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['Scan ID', 'Date', 'OS Type', 'Detected OS', 'Score', 'Total Checks', 'Compliant'])
+        
+        # Write scan data
+        compliant_count = scan.get('compliant_count', 0)
+        total_checks = scan.get('total_checks', 0)
+        
+        writer.writerow([
+            scan.get('scan_id', ''),
+            scan.get('scan_date', ''),
+            scan.get('os_type', ''),
+            scan.get('detected_os', ''),
+            scan.get('score', 0),
+            total_checks,
+            compliant_count
+        ])
+        
+        # Write check details header
+        writer.writerow([])
+        writer.writerow(['Check Name', 'Status', 'Category', 'Severity', 'Description'])
+        
+        # Write check details
+        for check in scan.get('checks', []):
+            writer.writerow([
+                check.get('name', ''),
+                check.get('status', ''),
+                check.get('category', ''),
+                check.get('severity', ''),
+                check.get('description', '')
+            ])
+        
+        # Convert to bytes
+        output.seek(0)
+        mem = io.BytesIO()
+        mem.write(output.getvalue().encode('utf-8'))
+        mem.seek(0)
+        
+        return send_file(
+            mem,
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=f'scan_{scan_id}.csv'
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/scan/history/download/csv')
+def download_history_csv():
+    """Download all scan history as CSV"""
+    try:
+        # Get all scans (use a large limit)
+        scans = db_manager.get_scan_history(limit=10000)
+        
+        # Create CSV in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write headers
+        writer.writerow(['Scan ID', 'Date', 'OS Type', 'Detected OS', 'Score', 'Total Checks'])
+        
+        # Write scan rows
+        for scan in scans:
+            writer.writerow([
+                scan.get('scan_id', ''),
+                scan.get('scan_date', ''),
+                scan.get('os', ''),
+                scan.get('detected_os', ''),
+                scan.get('score', 0),
+                scan.get('total_checks', 0)
+            ])
+        
+        # Convert to bytes
+        output.seek(0)
+        mem = io.BytesIO()
+        mem.write(output.getvalue().encode('utf-8'))
+        mem.seek(0)
+        
+        return send_file(
+            mem,
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name='scan_history.csv'
+        )
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
